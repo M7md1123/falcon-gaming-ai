@@ -1,0 +1,21 @@
+{
+  "name": "falcon-gaming-ai",
+  "version": "2.0.0",
+  "description": "Falcon Gaming AI - Arabic gaming news Discord bot | Developed by Mohammed Al-Khathami | AL0 Lab",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/deploy-commands.js && node index.js",
+    "deploy": "node src/deploy-commands.js",
+    "dev": "node index.js"
+  },
+  "engines": { "node": ">=18.17" },
+  "author": "Mohammed Al-Khathami | AL0 Lab",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "axios": "^1.7.0",
+    "discord.js": "^14.22.1",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
+    "rss-parser": "^3.13.0"
+  }
+}
