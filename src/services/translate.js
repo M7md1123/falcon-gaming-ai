@@ -1,3 +1,5 @@
+// Rewrites English news into professional Modern Standard Arabic (الفصحى).
+// Primary: Claude (best quality). Fallback: free Google translate endpoint.
 const axios = require('axios');
 const cfg = require('../config');
 const log = require('../utils/logger');
@@ -9,12 +11,36 @@ const SYSTEM = `أنت محرر أخبار ألعاب فيديو محترف. أ�
 - لا تضف معلومات غير موجودة في النص.
 - أعد JSON فقط بالشكل: {"title":"...","summary":"..."} وبدون أي نص آخر.`;
 
+const ARABIC = /[\u0600-\u06FF]/g;
+const LETTERS = /[A-Za-z\u0600-\u06FF]/g;
+
+function isArabic(text) {
+  if (!text) return true;
+  const letters = (text.match(LETTERS) || []).length;
+  if (!letters) return true;
+  return (text.match(ARABIC) || []).length / letters >= 0.4;
+}
+
+function chunk(text, max = 800) {
+  const parts = text.split(/(?<=[.!?])\s+/);
+  const out = [];
+  let cur = '';
+  for (const p of parts) {
+    if ((cur + ' ' + p).length > max && cur) {
+      out.push(cur);
+      cur = p;
+    } else cur = cur ? `${cur} ${p}` : p;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
 async function viaClaude(title, summary) {
   const { data } = await axios.post(
     'https://api.anthropic.com/v1/messages',
     {
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 800,
+      max_tokens: 1200,
       system: SYSTEM,
       messages: [{ role: 'user', content: JSON.stringify({ title, summary }) }],
     },
@@ -28,38 +54,55 @@ async function viaClaude(title, summary) {
     }
   );
   const text = data.content.map((c) => c.text || '').join('').replace(/```json|```/g, '').trim();
-  return JSON.parse(text);
+  const out = JSON.parse(text);
+  return { title: String(out.title || ''), summary: String(out.summary || '') };
 }
 
 async function googleTranslate(text) {
   if (!text) return '';
-  const { data } = await axios.get('https://translate.googleapis.com/translate_a/single', {
-    params: { client: 'gtx', sl: 'en', tl: 'ar', dt: 't', q: text },
-    timeout: 15000,
-  });
-  return data[0].map((s) => s[0]).join('');
+  const pieces = [];
+  for (const part of chunk(text)) {
+    const { data } = await axios.get('https://translate.googleapis.com/translate_a/single', {
+      params: { client: 'gtx', sl: 'auto', tl: 'ar', dt: 't', q: part },
+      timeout: 15000,
+    });
+    pieces.push(data[0].map((s) => s[0]).join(''));
+  }
+  return pieces.join(' ');
 }
+
+const valid = (r) => r && r.title && isArabic(r.title) && isArabic(r.summary);
 
 async function toArabic(item) {
-  if (item.arabic) return item;
-  if (cache.has(item.id)) return { ...item, ...cache.get(item.id) };
+  if (!cfg.translate || item.arabic) return item;
+  if (cache.has(item.id)) return { ...item, ...cache.get(item.id), translated: true };
 
-  let ar;
-  try {
-    if (cfg.anthropicKey) ar = await viaClaude(item.title, item.summary);
-  } catch (e) {
-    log.warn('Claude rewrite failed, using fallback:', e.message);
-  }
-  if (!ar) {
-    try {
-      ar = { title: await googleTranslate(item.title), summary: await googleTranslate(item.summary) };
-    } catch (e) {
-      log.warn('Fallback translation failed, keeping English:', e.message);
-      ar = { title: item.title, summary: item.summary };
+  let result = null;
+
+  if (cfg.anthropicKey) {
+    for (let attempt = 1; attempt <= 2 && !result; attempt++) {
+      try {
+        const r = await viaClaude(item.title, item.summary);
+        if (valid(r)) result = r;
+        else log.warn(`Claude output not Arabic (attempt ${attempt}) for "${item.title}"`);
+      } catch (e) {
+        log.warn(`Claude rewrite failed (attempt ${attempt}):`, e.message);
+      }
     }
   }
-  cache.set(item.id, ar);
-  return { ...item, ...ar };
+
+  if (!result) {
+    try {
+      const r = { title: await googleTranslate(item.title), summary: await googleTranslate(item.summary) };
+      if (valid(r)) result = r;
+    } catch (e) {
+      log.warn('Fallback translation failed:', e.message);
+    }
+  }
+
+  if (!result) return { ...item, translated: false };
+  cache.set(item.id, result);
+  return { ...item, ...result, translated: true };
 }
 
-module.exports = { toArabic };
+module.exports = { toArabic, isArabic };
