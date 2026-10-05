@@ -1,42 +1,61 @@
-// One command, three names: /g-news, /gaming-news and /عروض-الألعاب
-// (Discord has no Arabic locale for localizations, so both are registered.)
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { fetchAll } = require('../services/news');
 const { toArabic } = require('../services/translate');
-const { buildNewsEmbed, brandedEmbed } = require('../services/embed');
-
-const build = (name) =>
-  new SlashCommandBuilder()
-    .setName(name)
-    .setDescription('أحدث أخبار وعروض الألعاب بالعربية')
-    .addStringOption((o) =>
-      o
-        .setName('category')
-        .setDescription('نوع المحتوى')
-        .addChoices(
-          { name: 'الكل', value: 'all' },
-          { name: 'أخبار', value: 'news' },
-          { name: 'ألعاب مجانية', value: 'free' }
-        )
-    )
-    .addIntegerOption((o) =>
-      o.setName('count').setDescription('عدد الأخبار (1-5)').setMinValue(1).setMaxValue(5)
-    );
+const log = require('../utils/logger');
 
 module.exports = {
-  builders: ['g-news', 'gaming-news', 'gaming-offers'].map(build),
+  data: new SlashCommandBuilder()
+    .setName('g-news')
+    .setDescription('عرض آخر أخبار الألعاب وعروض الألعاب المجانية مترجمة للعربية')
+    .addStringOption(option =>
+      option.setName('category')
+        .setDescription('اختر القسم')
+        .setRequired(false)
+        .addChoices(
+          { name: 'الكل (أخبار وعروض)', value: 'all' },
+          { name: 'الأخبار فقط', value: 'news' },
+          { name: 'العروض المجانية فقط', value: 'free' }
+        )
+    ),
+
   async execute(interaction) {
     await interaction.deferReply();
-    const category = interaction.options.getString('category') || 'all';
-    const count = interaction.options.getInteger('count') || 3;
 
-    const items = (await fetchAll(category)).slice(0, count);
-    if (!items.length) {
-      return interaction.editReply({
-        embeds: [brandedEmbed(0xe74c3c).setTitle('لا توجد نتائج').setDescription('تعذّر جلب الأخبار حالياً، حاول لاحقاً.')],
-      });
+    try {
+      const category = interaction.options.getString('category') || 'all';
+      const items = await fetchAll(category);
+
+      if (!items || items.length === 0) {
+        return interaction.editReply('❌ عذراً، لم يتم العثور على أخبار حالياً.');
+      }
+
+      // Take top 3 items to avoid Discord limits
+      const topItems = items.slice(0, 3);
+      const embeds = [];
+
+      for (const item of topItems) {
+        // Translate item content
+        const translated = await toArabic(item);
+
+        const embed = new EmbedBuilder()
+          .setTitle(translated.title || item.title)
+          .setURL(item.link)
+          .setDescription(translated.summary || item.summary || 'لا يوجد ملخص.')
+          .setColor('#00ffcc')
+          .setFooter({ text: `${item.source} • AL0 Lab` })
+          .setTimestamp(new Date(item.date));
+
+        if (item.image) {
+          embed.setImage(item.image);
+        }
+
+        embeds.push(embed);
+      }
+
+      await interaction.editReply({ embeds });
+    } catch (error) {
+      log.error('Error executing g-news command:', error);
+      await interaction.editReply('❌ حدث خطأ أثناء جلب الأخبار. يجدر المحاولة لاحقاً.');
     }
-    const translated = await Promise.all(items.map(toArabic));
-    await interaction.editReply({ embeds: translated.map(buildNewsEmbed) });
   },
 };
