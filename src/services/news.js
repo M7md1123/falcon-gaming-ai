@@ -15,7 +15,7 @@ const strip = (h = '') =>
   h.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 
 function extractImage(it) {
-  const direct = it.mediaContent?.$?.url || it.mediaThumbnail?.$?.url || it.enclosure?.url;
+  const direct = it.mediaContent?.$?.url \vert{}\vert{} it.mediaThumbnail?.$?.url || it.enclosure?.url;
   if (direct) return direct;
   const m = (it['content:encoded'] || it.content || '').match(/<img[^>]+src=["']([^"']+)/i);
   return m ? m[1] : null;
@@ -41,11 +41,7 @@ async function fetchRss() {
           out.push({
             id: sha(it.link),
             title: strip(it.title),
-<<<<<<< HEAD
             summary: strip(it.contentSnippet || it.content || '').slice(0, 900),
-=======
-            summary: strip(it.contentSnippet || it.content || '').slice(0, 500),
->>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
             link: it.link,
             image: extractImage(it),
             source: f.name,
