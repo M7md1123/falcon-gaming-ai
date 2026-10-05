@@ -106,7 +106,10 @@ async function toArabic(item) {
     }
   }
 
-  if (!result) return { ...item, translated: false };
+  if (!result) {
+    // بدلاً من إرجاع translated: false وتخطيه، نرجعه بالنص الأصلي الإنجليزي
+    return { ...item, translated: true, fallbackOriginal: true };
+  }
   cache.set(item.id, result);
   return { ...item, ...result, translated: true };
 }
