@@ -1,0 +1,16 @@
+# Render Blueprint. NOTE: a Discord bot is a long-running process (Vercel/serverless will NOT work).
+services:
+  - type: web            # use "worker" on a paid plan (no HTTP port needed)
+    name: falcon-gaming-ai
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - { key: DISCORD_TOKEN, sync: false }
+      - { key: CLIENT_ID, sync: false }
+      - { key: GUILD_ID, sync: false }
+      - { key: NEWS_CHANNEL_ID, sync: false }
+      - { key: ANTHROPIC_API_KEY, sync: false }
+      - { key: CRON_SCHEDULE, value: "*/30 * * * *" }
