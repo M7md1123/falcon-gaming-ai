@@ -17,10 +17,7 @@ module.exports = {
   bio:
     'بوت أخبار ألعاب آلي بالكامل، يوافيك على مدار الساعة بأحدث الأخبار العالمية وإصدارات الألعاب والعروض والألعاب المجانية بصياغة عربية فصحى احترافية، مع تصنيف مستوى الحماس لكل خبر. 🎮 اكتب /g-news لتصلك آخر المستجدات.\n\nتم التطوير بواسطة محمد الخثعمي | AL0 Lab',
   logoPath: require('path').join(__dirname, '..', 'assets', 'logo.png'),
-  
-
-  translate: process.env.TRANSLATE_NEWS !== 'false', 
-  
+  translate: process.env.TRANSLATE_NEWS !== 'false', // auto-translate headlines + content to Arabic
   syncProfile: process.env.SYNC_PROFILE === 'true',
   brand: 'Developed by Mohammed Al-Khathami | AL0 Lab', // console logs
   footer: 'تم التطوير بواسطة محمد الخثعمي | AL0 Lab', // every Discord embed

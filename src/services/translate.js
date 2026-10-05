@@ -1,5 +1,5 @@
-// Rewrites English news into professional Modern Standard Arabic (الفصحى).
-// Primary: Claude (best quality). Fallback: free Google translate endpoint.
+// Translates headline + content into Modern Standard Arabic (الفصحى) BEFORE posting.
+// Pipeline: Claude rewrite (best) -> retry once -> free Google fallback -> validate output is Arabic.
 const axios = require('axios');
 const cfg = require('../config');
 const log = require('../utils/logger');
@@ -11,9 +11,11 @@ const SYSTEM = `أنت محرر أخبار ألعاب فيديو محترف. أ�
 - لا تضف معلومات غير موجودة في النص.
 - أعد JSON فقط بالشكل: {"title":"...","summary":"..."} وبدون أي نص آخر.`;
 
+// ---- helpers ----------------------------------------------------------------
 const ARABIC = /[\u0600-\u06FF]/g;
 const LETTERS = /[A-Za-z\u0600-\u06FF]/g;
 
+/** True if the text is mostly Arabic (game names in English are tolerated). */
 function isArabic(text) {
   if (!text) return true;
   const letters = (text.match(LETTERS) || []).length;
@@ -21,6 +23,7 @@ function isArabic(text) {
   return (text.match(ARABIC) || []).length / letters >= 0.4;
 }
 
+/** Splits long text on sentence boundaries so each request stays small. */
 function chunk(text, max = 800) {
   const parts = text.split(/(?<=[.!?])\s+/);
   const out = [];
@@ -35,6 +38,7 @@ function chunk(text, max = 800) {
   return out;
 }
 
+// ---- engines ----------------------------------------------------------------
 async function viaClaude(title, summary) {
   const { data } = await axios.post(
     'https://api.anthropic.com/v1/messages',
@@ -73,8 +77,10 @@ async function googleTranslate(text) {
 
 const valid = (r) => r && r.title && isArabic(r.title) && isArabic(r.summary);
 
+// ---- public API -------------------------------------------------------------
+/** Returns the item with Arabic title/summary and translated:true, or translated:false on failure. */
 async function toArabic(item) {
-  if (!cfg.translate || item.arabic) return item;
+  if (!cfg.translate || item.arabic) return item; // Epic items already arrive in Arabic
   if (cache.has(item.id)) return { ...item, ...cache.get(item.id), translated: true };
 
   let result = null;

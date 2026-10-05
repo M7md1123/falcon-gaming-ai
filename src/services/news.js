@@ -15,7 +15,7 @@ const strip = (h = '') =>
   h.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 
 function extractImage(it) {
-  const direct = it.mediaContent?.$?.url \vert{}\vert{} it.mediaThumbnail?.$?.url || it.enclosure?.url;
+  const direct = it.mediaContent?.$?.url || it.mediaThumbnail?.$?.url || it.enclosure?.url;
   if (direct) return direct;
   const m = (it['content:encoded'] || it.content || '').match(/<img[^>]+src=["']([^"']+)/i);
   return m ? m[1] : null;

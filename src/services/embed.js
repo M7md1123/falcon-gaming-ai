@@ -22,17 +22,10 @@ function brandedEmbed(color = 0x1abc9c) {
 function buildNewsEmbed(item) {
   const t = TAGS[item.tag] || TAGS.news;
   const e = brandedEmbed(t.color)
-<<<<<<< HEAD
     .setAuthor({ name: `${item.source} • ${cfg.botName}`, iconURL: cfg.logoUrl }) // bot avatar
     .setTitle(item.title.slice(0, 256))
     .setURL(item.link)
     .setDescription((item.summary || '').slice(0, 1000) || 'اضغط على العنوان لقراءة التفاصيل.')
-=======
-    .setAuthor({ name: `${item.source} • ${cfg.botName}` })
-    .setTitle(item.title.slice(0, 256))
-    .setURL(item.link)
-    .setDescription((item.summary || '').slice(0, 700) || 'اضغط على العنوان لقراءة التفاصيل.')
->>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
     .addFields(
       { name: 'التصنيف', value: t.label, inline: true },
       { name: 'مستوى الحماس', value: t.meter, inline: true },

@@ -24,13 +24,10 @@ async function runCycle(client) {
     for (const item of fresh) {
       try {
         const ar = await toArabic(item);
-<<<<<<< HEAD
         if (cfg.translate && !ar.arabic && !ar.translated) {
           log.warn(`Skipped (translation failed, will retry next cycle): ${item.title}`);
           continue; // not marked as posted
         }
-=======
->>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
         await channel.send({ embeds: [buildNewsEmbed(ar)] });
         store.add(item.id);
       } catch (e) {
