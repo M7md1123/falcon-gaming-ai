@@ -24,7 +24,7 @@ const build = (name) =>
     );
 
 module.exports = {
-  builders: ['g-news', 'gaming-news', 'عروض-الألعاب'].map(build),
+  builders: ['g-news', 'gaming-news', 'gaming-offers'].map(build),
   async execute(interaction) {
     await interaction.deferReply();
     const category = interaction.options.getString('category') || 'all';
