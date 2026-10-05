@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-// Translates headline + content into Modern Standard Arabic (الفصحى) BEFORE posting.
-// Pipeline: Claude rewrite (best) -> retry once -> free Google fallback -> validate output is Arabic.
-=======
 // Rewrites English news into professional Modern Standard Arabic (الفصحى).
 // Primary: Claude (best quality). Fallback: free Google translate endpoint.
->>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
 const axios = require('axios');
 const cfg = require('../config');
 const log = require('../utils/logger');
@@ -16,12 +11,9 @@ const SYSTEM = `أنت محرر أخبار ألعاب فيديو محترف. أ�
 - لا تضف معلومات غير موجودة في النص.
 - أعد JSON فقط بالشكل: {"title":"...","summary":"..."} وبدون أي نص آخر.`;
 
-<<<<<<< HEAD
-// ---- helpers ----------------------------------------------------------------
 const ARABIC = /[\u0600-\u06FF]/g;
 const LETTERS = /[A-Za-z\u0600-\u06FF]/g;
 
-/** True if the text is mostly Arabic (game names in English are tolerated). */
 function isArabic(text) {
   if (!text) return true;
   const letters = (text.match(LETTERS) || []).length;
@@ -29,7 +21,6 @@ function isArabic(text) {
   return (text.match(ARABIC) || []).length / letters >= 0.4;
 }
 
-/** Splits long text on sentence boundaries so each request stays small. */
 function chunk(text, max = 800) {
   const parts = text.split(/(?<=[.!?])\s+/);
   const out = [];
@@ -44,19 +35,12 @@ function chunk(text, max = 800) {
   return out;
 }
 
-// ---- engines ----------------------------------------------------------------
-=======
->>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
 async function viaClaude(title, summary) {
   const { data } = await axios.post(
     'https://api.anthropic.com/v1/messages',
     {
       model: 'claude-haiku-4-5-20251001',
-<<<<<<< HEAD
       max_tokens: 1200,
-=======
-      max_tokens: 800,
->>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
       system: SYSTEM,
       messages: [{ role: 'user', content: JSON.stringify({ title, summary }) }],
     },
@@ -70,17 +54,12 @@ async function viaClaude(title, summary) {
     }
   );
   const text = data.content.map((c) => c.text || '').join('').replace(/```json|```/g, '').trim();
-<<<<<<< HEAD
   const out = JSON.parse(text);
   return { title: String(out.title || ''), summary: String(out.summary || '') };
-=======
-  return JSON.parse(text);
->>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
 }
 
 async function googleTranslate(text) {
   if (!text) return '';
-<<<<<<< HEAD
   const pieces = [];
   for (const part of chunk(text)) {
     const { data } = await axios.get('https://translate.googleapis.com/translate_a/single', {
@@ -94,10 +73,8 @@ async function googleTranslate(text) {
 
 const valid = (r) => r && r.title && isArabic(r.title) && isArabic(r.summary);
 
-// ---- public API -------------------------------------------------------------
-/** Returns the item with Arabic title/summary and translated:true, or translated:false on failure. */
 async function toArabic(item) {
-  if (!cfg.translate || item.arabic) return item; // Epic items already arrive in Arabic
+  if (!cfg.translate || item.arabic) return item;
   if (cache.has(item.id)) return { ...item, ...cache.get(item.id), translated: true };
 
   let result = null;
@@ -129,35 +106,3 @@ async function toArabic(item) {
 }
 
 module.exports = { toArabic, isArabic };
-=======
-  const { data } = await axios.get('https://translate.googleapis.com/translate_a/single', {
-    params: { client: 'gtx', sl: 'en', tl: 'ar', dt: 't', q: text },
-    timeout: 15000,
-  });
-  return data[0].map((s) => s[0]).join('');
-}
-
-async function toArabic(item) {
-  if (item.arabic) return item;
-  if (cache.has(item.id)) return { ...item, ...cache.get(item.id) };
-
-  let ar;
-  try {
-    if (cfg.anthropicKey) ar = await viaClaude(item.title, item.summary);
-  } catch (e) {
-    log.warn('Claude rewrite failed, using fallback:', e.message);
-  }
-  if (!ar) {
-    try {
-      ar = { title: await googleTranslate(item.title), summary: await googleTranslate(item.summary) };
-    } catch (e) {
-      log.warn('Fallback translation failed, keeping English:', e.message);
-      ar = { title: item.title, summary: item.summary };
-    }
-  }
-  cache.set(item.id, ar);
-  return { ...item, ...ar };
-}
-
-module.exports = { toArabic };
->>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
