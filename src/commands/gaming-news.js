@@ -29,12 +29,10 @@ module.exports = {
         return interaction.editReply('❌ عذراً، لم يتم العثور على أخبار حالياً.');
       }
 
-      // Take top 3 items to avoid Discord limits
       const topItems = items.slice(0, 3);
       const embeds = [];
 
       for (const item of topItems) {
-        // Translate item content
         const translated = await toArabic(item);
 
         const embed = new EmbedBuilder()
@@ -55,7 +53,7 @@ module.exports = {
       await interaction.editReply({ embeds });
     } catch (error) {
       log.error('Error executing g-news command:', error);
-      await interaction.editReply('❌ حدث خطأ أثناء جلب الأخبار. يجدر المحاولة لاحقاً.');
+      await interaction.editReply('❌ حدث خطأ أثناء جلب الأخبار. يرجى المحاولة لاحقاً.');
     }
   },
 };
