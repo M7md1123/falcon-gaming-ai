@@ -41,7 +41,11 @@ async function fetchRss() {
           out.push({
             id: sha(it.link),
             title: strip(it.title),
+<<<<<<< HEAD
             summary: strip(it.contentSnippet || it.content || '').slice(0, 900),
+=======
+            summary: strip(it.contentSnippet || it.content || '').slice(0, 500),
+>>>>>>> c16d2386ac0b4358bce871faba3fa62a241905b6
             link: it.link,
             image: extractImage(it),
             source: f.name,
